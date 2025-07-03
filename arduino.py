@@ -9,7 +9,7 @@ BAUD        = 115200
 WINDOW      = 1.0
 TICK        = 0.1
 ALPHA_UP    = 0.5
-ALPHA_DOWN  = 0.3
+ALPHA_DOWN  = 0.15
 
 ser = serial.Serial(PORT, BAUD, timeout=0)  # non-blocking
 keystamps, smooth = deque(), 0.0
@@ -34,7 +34,7 @@ def loop():
         raw = len(keystamps) / WINDOW
         alpha = ALPHA_UP if raw > smooth else ALPHA_DOWN
         smooth += alpha * (raw - smooth)          # 非対称 EMA
-        rpm = int( map_range(smooth, 0, 12, 0, 255) )  # 0~12 KPS → 0~255
+        rpm = int( map_range(smooth, 0, 25, 150, 255) )  # 0~25 KPS → 150~255
         ser.write(f"{rpm}\n".encode())            # arduinoにバイトを送信/改行
         print(f"{smooth:4.2f} kps → {rpm:3d}")
 
