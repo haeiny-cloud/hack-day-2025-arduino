@@ -18,14 +18,16 @@
 #define NOTE_G5  784
 
 /* ───── メロディ（約10 秒：20音 × 500 ms）──── */
-const int melody[] = {
-  NOTE_E5, NOTE_D5, NOTE_C5, NOTE_D5,
-  NOTE_E5, NOTE_E5, NOTE_E5, NOTE_D5,
-  NOTE_D5, NOTE_D5, NOTE_E5, NOTE_G5,
-  NOTE_G5, NOTE_E5, NOTE_D5, NOTE_C5,
-  NOTE_D5, NOTE_E5, NOTE_D5, NOTE_C5
+const uint16_t melody[] = {
+  NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5,
+  NOTE_G4, NOTE_E4, NOTE_C4, NOTE_D4,
+  NOTE_F4, NOTE_A4, NOTE_C5, NOTE_A4,
+  NOTE_F4, NOTE_E4, NOTE_G4, NOTE_B4,
+  NOTE_D5, NOTE_B4, NOTE_G4, NOTE_C4
 };
-const int noteDur[] = { 8,8,8,8,8,8,4,8,8,4,8,8,4,8,8,8,8,8,8,8 };  
+const uint8_t noteDur[] = {
+  8,8,8,8, 8,8,8,8, 8,8,8,8, 8,8,8,8, 8,8,8,8
+};  
 /* noteDur=8 → 500 ms（4=1 s, 2=2 s）. 合計 ≈10 s */
 
 const byte ENA_PIN = 10;  // L293D 1番ピン → Nano D10（PWM）
@@ -53,12 +55,12 @@ void stopSong() {
 void setup() {
   pinMode(ENA_PIN, OUTPUT);
   pinMode(IN1_PIN, OUTPUT);
-  pinMode(IN2_PIN, OUTPUT);
+  // pinMode(IN2_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
   // デフォルトの回転方向（前進）
   digitalWrite(IN1_PIN, HIGH);
-  digitalWrite(IN2_PIN, LOW);
+  // digitalWrite(IN2_PIN, LOW);
 
   analogWrite(ENA_PIN, 0);        // 初期状態は停止
   Serial.begin(115200);           // Python 側と同じボーレート
@@ -72,7 +74,7 @@ void loop() {
       int pwm = buf.toInt();
       buf = "";
 
-      if (pwm > 0 && pwm < 100) pwm = 100;
+      if (pwm < 150) pwm = 150;
       if (pwm > 255) pwm = 255;
 
       analogWrite(ENA_PIN, pwm);
