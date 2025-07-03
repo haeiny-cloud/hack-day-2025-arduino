@@ -33,13 +33,16 @@ const uint8_t noteDur[] = {
 const byte ENA_PIN = 10;  // L293D 1番ピン → Nano D10（PWM）
 const byte IN1_PIN = 9;   // L293D 2番ピン → Nano D9  （方向）
 const byte IN2_PIN = 8;   // L293D 7番ピン → Nano D8  （方向）
-const byte BUZZER_PIN = 8;    // パイゾブザー
+const byte BUZZER_PIN = 4;    // パイゾブザー
 
 String buf;               // シリアル受信用バッファ
 bool     playing      = false;
 uint8_t  noteIndex    = 0;
 uint32_t noteStarted  = 0;
 uint16_t noteLenMs    = 0;
+
+bool initiated = false;
+unsigned long lastCmdMillis = 0;
 
 void startSong() {
   noTone(BUZZER_PIN);         // 進行中でも即停止
@@ -55,12 +58,12 @@ void stopSong() {
 void setup() {
   pinMode(ENA_PIN, OUTPUT);
   pinMode(IN1_PIN, OUTPUT);
-  // pinMode(IN2_PIN, OUTPUT);
+  pinMode(IN2_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
   // デフォルトの回転方向（前進）
   digitalWrite(IN1_PIN, HIGH);
-  // digitalWrite(IN2_PIN, LOW);
+  digitalWrite(IN2_PIN, LOW);
 
   analogWrite(ENA_PIN, 0);        // 初期状態は停止
   Serial.begin(115200);           // Python 側と同じボーレート
@@ -69,6 +72,14 @@ void setup() {
 void loop() {
   /* 1) シリアル受信 */
   while (Serial.available()) {
+    if (!initiated) {
+      initiated = true;
+      lastCmdMillis = millis();
+      analogWrite(ENA_PIN, 255);    // 初期状態は停止
+      delay(1500);
+      analogWrite(ENA_PIN, 150); // 初期化完了後、停止
+    }
+
     char c = Serial.read();
     if (c == '\n') {
       int pwm = buf.toInt();
@@ -80,7 +91,7 @@ void loop() {
       analogWrite(ENA_PIN, pwm);
 
       /* 255 なら毎回頭出し再生、230 未満なら停止 */
-      if (pwm == 255) {
+      if (pwm == 255 && !playing) {
         startSong();                  // 冒頭から再生
       } else if (pwm < 230 && playing) {
         stopSong();
@@ -89,6 +100,11 @@ void loop() {
       buf += c;
       if (buf.length() > 5) buf = ""; // 過長保護
     }
+  }
+
+  if (initiated && (millis() - lastCmdMillis > SERIAL_TIMEOUT)) {
+    initiated = false;
+    analogWrite(ENA_PIN, 0);
   }
 
   /* 2) メロディ進行（非同期） */
